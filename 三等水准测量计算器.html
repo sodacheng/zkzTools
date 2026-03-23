@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>三等水准测量计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            flex: 1;
+        }
+
+        .header h1 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .btn-header {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .btn-header:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 视距差求和模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-row input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .input-row input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-add {
+            width: 48px;
+            height: 48px;
+            background: #ffffff;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .btn-add:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .sum-display {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border: 1px solid #667eea40;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #764ba2;
+            font-size: 1.1rem;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+        }
+
+        .data-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .data-item:hover {
+            background: #e9ecef;
+        }
+
+        .data-item.delete-mode {
+            background: #fee;
+            border: 1px solid #fcc;
+        }
+
+        .data-item .index {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .data-item .value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .data-item .delete-icon {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            color: #dc3545;
+        }
+
+        .data-item.delete-mode .index,
+        .data-item.delete-mode .value {
+            display: none;
+        }
+
+        .data-item.delete-mode .delete-icon {
+            display: block;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #6c757d;
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            color: #667eea;
+            background: white;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #495057;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-with-unit {
+            position: relative;
+        }
+
+        .input-with-unit input {
+            padding-right: 50px;
+        }
+
+        .unit-label {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .radio-item input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .radio-item label {
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 10px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 12px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .result-section {
+            margin-bottom: 20px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .result-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-label {
+            font-size: 0.85rem;
+            color: #495057;
+            flex: 1;
+        }
+
+        .result-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #667eea;
+            text-align: right;
+            min-width: 100px;
+        }
+
+        .result-item.highlight {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border: 1px solid #667eea40;
+        }
+
+        .result-item.highlight .result-value {
+            color: #764ba2;
+            font-size: 1.1rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 15px 0;
+        }
+
+        .station-info {
+            background: #e7f3ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .station-info span {
+            font-weight: 600;
+            color: #0066cc;
+        }
+
+        .btn-record {
+            width: 100%;
+            padding: 12px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .btn-record:hover {
+            background: #218838;
+        }
+
+        .btn-clear {
+            width: 100%;
+            padding: 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.3s ease;
+        }
+
+        .btn-clear:hover {
+            background: #c82333;
+        }
+
+        @media (max-width: 400px) {
+            body {
+                padding: 5px;
+            }
+
+            .header h1 {
+                font-size: 1.1rem;
+            }
+
+            .tab {
+                padding: 12px 8px;
+                font-size: 0.9rem;
+            }
+
+            .tab-content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>三等水准测量计算器</h1>
+                <p>垂直位移观测</p>
+            </div>
+            <button class="btn-header" onclick="openModal()">视距差求和</button>
+        </div>
+
+        <!-- 视距差求和模态框 -->
+        <div id="sumModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>视距差求和</h2>
+                    <button class="btn-close" onclick="closeModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-row">
+                        <input type="number" id="sightDiffInput" placeholder="输入视距差（米）" step="0.001">
+                        <button class="btn-add" onclick="addSightDiff()">➕</button>
+                    </div>
+                    <div class="sum-display" id="sumDisplay">∑视距差=0.000m</div>
+                    <div class="data-grid" id="dataGrid">
+                        <div class="empty-message">暂无数据</div>
+                    </div>
+                    <button class="btn-clear" onclick="clearAllData()">清除全部数据</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('input')">数据输入</div>
+            <div class="tab" onclick="switchTab('result')">计算结果</div>
+        </div>
+
+        <!-- 数据输入选项卡 -->
+        <div id="input-tab" class="tab-content active">
+            <div class="form-section">
+                <div class="section-title">基础信息</div>
+                
+                <div class="form-group">
+                    <label>测站编号</label>
+                    <input type="text" id="stationNo" placeholder="请输入测站编号，如：1">
+                </div>
+
+                <div class="form-group">
+                    <label>K值选择</label>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" id="k1_4687" name="kValue" value="4.687" checked>
+                            <label for="k1_4687">K1=4.687, K2=4.787</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="k1_4787" name="kValue" value="4.787">
+                            <label for="k1_4787">K1=4.787, K2=4.687</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>输入单位</label>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" id="unitMeter" name="inputUnit" value="meter" checked>
+                            <label for="unitMeter">米</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="unitMm" name="inputUnit" value="mm">
+                            <label for="unitMm">毫米</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-title">测量数据</div>
+                
+                <div class="form-group">
+                    <label>后视-上丝</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="bsUpper" step="0.001" placeholder="0.000">
+                        <span class="unit-label unit-display">米</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>后视-下丝</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="bsLower" step="0.001" placeholder="0.000">
+                        <span class="unit-label unit-display">米</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>后视黑面读数</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="bsBlack" step="0.001" placeholder="0.000">
+                        <span class="unit-label unit-display">米</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>前视-上丝</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="fsUpper" step="0.001" placeholder="0.000">
+                        <span class="unit-label unit-display">米</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>前视-下丝</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="fsLower" step="0.001" placeholder="0.000">
+                        <span class="unit-label unit-display">米</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>前视黑面读数</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="fsBlack" step="0.001" placeholder="0.000">
+                        <span class="unit-label unit-display">米</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>前视红面读数</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="fsRed" step="0.001" placeholder="0.000">
+                        <span class="unit-label unit-display">米</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>后视红面读数</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="bsRed" step="0.001" placeholder="0.000">
+                        <span class="unit-label unit-display">米</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="calculate()">查看计算结果</button>
+        </div>
+
+        <!-- 计算结果选项卡 -->
+        <div id="result-tab" class="tab-content">
+            <div id="resultContent">
+                <div class="station-info">
+                    测站编号：<span id="resultStation">-</span><br>
+                    <span id="sumSightDiffDisplay">∑视距差=0.000m</span>
+                </div>
+
+                <div class="result-section">
+                    <div class="section-title">观测数据</div>
+                    
+                    <div class="result-item">
+                        <span class="result-label">(1) 后视-上丝</span>
+                        <span class="result-value" id="r1">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(2) 后视-下丝</span>
+                        <span class="result-value" id="r2">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(3) 水准尺后视黑面读数</span>
+                        <span class="result-value" id="r3">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(4) 前视-上丝</span>
+                        <span class="result-value" id="r4">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(5) 前视-下丝</span>
+                        <span class="result-value" id="r5">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(6) 水准尺前视黑面读数</span>
+                        <span class="result-value" id="r6">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(7) 水准尺前视红面读数</span>
+                        <span class="result-value" id="r7">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(8) 水准尺后视红面读数</span>
+                        <span class="result-value" id="r8">-</span>
+                    </div>
+                </div>
+
+                <div class="result-section">
+                    <div class="section-title">视距计算</div>
+                    
+                    <div class="result-item">
+                        <span class="result-label">(9) 后视距</span>
+                        <span class="result-value" id="r9">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(10) 前视距</span>
+                        <span class="result-value" id="r10">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(11) 视距差</span>
+                        <span class="result-value" id="r11">-</span>
+                    </div>
+                </div>
+
+                <div class="result-section">
+                    <div class="section-title">K值检核</div>
+                    
+                    <div class="result-item">
+                        <span class="result-label">(13) 后视 K+黑-红</span>
+                        <span class="result-value" id="r13">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(14) 前视 K+黑-红</span>
+                        <span class="result-value" id="r14">-</span>
+                    </div>
+                </div>
+
+                <div class="result-section">
+                    <div class="section-title">高差计算</div>
+                    
+                    <div class="result-item">
+                        <span class="result-label">(15) 水准尺 黑面 后-前</span>
+                        <span class="result-value" id="r15">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(16) 水准尺 红面 后-前</span>
+                        <span class="result-value" id="r16">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">(17) (后视 K+黑-红) - (前视 K+黑-红)</span>
+                        <span class="result-value" id="r17">-</span>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="result-item highlight">
+                        <span class="result-label">(18) 平均高差</span>
+                        <span class="result-value" id="r18">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-secondary" onclick="switchTab('input')">返回修改数据</button>
+            <button class="btn-record" onclick="recordSightDiff()">记录视距差</button>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            // 移除所有活动状态
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // 激活选中的选项卡
+            if (tabName === 'input') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('input-tab').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('result-tab').classList.add('active');
+            }
+        }
+
+        function formatValue(value, decimals = 3) {
+            if (isNaN(value) || value === null) return '-';
+            return value.toFixed(decimals);
+        }
+
+        function getInputUnit() {
+            return document.querySelector('input[name="inputUnit"]:checked').value;
+        }
+
+        function convertToMeters(value) {
+            const unit = getInputUnit();
+            if (unit === 'mm') {
+                return value / 1000;
+            }
+            return value;
+        }
+
+        // 更新输入框单位显示
+        function updateUnitDisplay() {
+            const unit = getInputUnit();
+            const unitText = unit === 'mm' ? '毫米' : '米';
+            const stepValue = unit === 'mm' ? '1' : '0.001';
+            
+            document.querySelectorAll('.unit-display').forEach(el => {
+                el.textContent = unitText;
+            });
+            
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+                input.step = stepValue;
+            });
+        }
+
+        // 监听单位切换
+        document.querySelectorAll('input[name="inputUnit"]').forEach(radio => {
+            radio.addEventListener('change', updateUnitDisplay);
+        });
+
+        function calculate() {
+            // 获取输入值
+            const stationNo = document.getElementById('stationNo').value || '-';
+            const k1Value = parseFloat(document.querySelector('input[name="kValue"]:checked').value);
+            const k2Value = k1Value === 4.687 ? 4.787 : 4.687;
+
+            let bsUpper = parseFloat(document.getElementById('bsUpper').value);
+            let bsLower = parseFloat(document.getElementById('bsLower').value);
+            let bsBlack = parseFloat(document.getElementById('bsBlack').value);
+            let bsRed = parseFloat(document.getElementById('bsRed').value);
+            let fsUpper = parseFloat(document.getElementById('fsUpper').value);
+            let fsLower = parseFloat(document.getElementById('fsLower').value);
+            let fsBlack = parseFloat(document.getElementById('fsBlack').value);
+            let fsRed = parseFloat(document.getElementById('fsRed').value);
+
+            // 验证输入
+            if (isNaN(bsUpper) || isNaN(bsLower) || isNaN(bsBlack) || isNaN(bsRed) ||
+                isNaN(fsUpper) || isNaN(fsLower) || isNaN(fsBlack) || isNaN(fsRed)) {
+                alert('请填写所有测量数据！');
+                return;
+            }
+
+            // 转换为米
+            bsUpper = convertToMeters(bsUpper);
+            bsLower = convertToMeters(bsLower);
+            bsBlack = convertToMeters(bsBlack);
+            bsRed = convertToMeters(bsRed);
+            fsUpper = convertToMeters(fsUpper);
+            fsLower = convertToMeters(fsLower);
+            fsBlack = convertToMeters(fsBlack);
+            fsRed = convertToMeters(fsRed);
+
+            // 计算视距
+            const bsDistance = (bsUpper - bsLower) * 100;
+            const fsDistance = (fsUpper - fsLower) * 100;
+            const sightDiff = bsDistance - fsDistance;
+
+            // 计算高差
+            const blackDiff = bsBlack - fsBlack;
+            const redDiff = bsRed - fsRed;
+
+            // 计算K+黑-红 (保留1位小数)
+            const bsKCheck = (k1Value + bsBlack - bsRed) * 1000;
+            const fsKCheck = (k2Value + fsBlack - fsRed) * 1000;
+            const kDiff = bsKCheck - fsKCheck;
+
+            // 计算平均高差
+            let avgDiff;
+            if (k1Value === 4.687) {
+                avgDiff = (blackDiff + (redDiff + 0.1)) / 2;
+            } else {
+                avgDiff = (blackDiff + (redDiff - 0.1)) / 2;
+            }
+
+            // 显示结果
+            document.getElementById('resultStation').textContent = stationNo;
+            document.getElementById('r1').textContent = formatValue(bsUpper) + ' 米';
+            document.getElementById('r2').textContent = formatValue(bsLower) + ' 米';
+            document.getElementById('r3').textContent = formatValue(bsBlack) + ' 米';
+            document.getElementById('r4').textContent = formatValue(fsUpper) + ' 米';
+            document.getElementById('r5').textContent = formatValue(fsLower) + ' 米';
+            document.getElementById('r6').textContent = formatValue(fsBlack) + ' 米';
+            document.getElementById('r7').textContent = formatValue(fsRed) + ' 米';
+            document.getElementById('r8').textContent = formatValue(bsRed) + ' 米';
+            document.getElementById('r9').textContent = formatValue(bsDistance, 2) + ' 米';
+            document.getElementById('r10').textContent = formatValue(fsDistance, 2) + ' 米';
+            document.getElementById('r11').textContent = formatValue(sightDiff, 2) + ' 米';
+            document.getElementById('r13').textContent = formatValue(bsKCheck, 1) + ' 毫米';
+            document.getElementById('r14').textContent = formatValue(fsKCheck, 1) + ' 毫米';
+            document.getElementById('r15').textContent = formatValue(blackDiff) + ' 米';
+            document.getElementById('r16').textContent = formatValue(redDiff) + ' 米';
+            document.getElementById('r17').textContent = formatValue(kDiff, 1) + ' 毫米';
+            document.getElementById('r18').textContent = formatValue(avgDiff, 4) + ' 米';
+
+            // 切换到结果选项卡
+            switchTab('result');
+        }
+
+        // 输入框自动格式化
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('blur', function() {
+                if (this.value && !isNaN(this.value)) {
+                    const unit = getInputUnit();
+                    if (unit === 'mm') {
+                        // 毫米模式：去掉小数部分
+                        this.value = parseInt(parseFloat(this.value));
+                    } else {
+                        // 米模式：保留3位小数
+                        this.value = parseFloat(this.value).toFixed(3);
+                    }
+                }
+            });
+        });
+
+        // 视距差求和功能
+        let sightDiffData = [];
+
+        function openModal() {
+            document.getElementById('sumModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('sumModal').classList.remove('active');
+        }
+
+        function addSightDiff() {
+            const input = document.getElementById('sightDiffInput');
+            const valueM = parseFloat(input.value);
+            
+            if (isNaN(valueM)) {
+                alert('请输入有效的视距差数值！');
+                return;
+            }
+
+            sightDiffData.push(valueM);
+            
+            // 清空输入框
+            input.value = '';
+            
+            // 更新显示
+            updateDataGrid();
+            updateSum();
+        }
+
+        function updateDataGrid() {
+            const grid = document.getElementById('dataGrid');
+            
+            if (sightDiffData.length === 0) {
+                grid.innerHTML = '<div class="empty-message">暂无数据</div>';
+                return;
+            }
+
+            let html = '';
+            sightDiffData.forEach((value, index) => {
+                html += `
+                    <div class="data-item" onclick="toggleDelete(this, ${index})">
+                        <div class="index">第${index + 1}个</div>
+                        <div class="value">${value.toFixed(3)}m</div>
+                        <div class="delete-icon">❌</div>
+                    </div>
+                `;
+            });
+            grid.innerHTML = html;
+        }
+
+        function updateSum() {
+            const sum = sightDiffData.reduce((acc, val) => acc + val, 0);
+            document.getElementById('sumDisplay').textContent = `∑视距差=${sum.toFixed(3)}m`;
+        }
+
+        function toggleDelete(element, index) {
+            if (element.classList.contains('delete-mode')) {
+                // 确认删除
+                sightDiffData.splice(index, 1);
+                updateDataGrid();
+                updateSum();
+            } else {
+                // 进入删除模式
+                // 先移除其他项的删除模式
+                document.querySelectorAll('.data-item').forEach(item => {
+                    item.classList.remove('delete-mode');
+                });
+                element.classList.add('delete-mode');
+            }
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('sumModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // 点击模态框内容区域（非数据项）隐藏删除按钮
+        document.querySelector('.modal-body').addEventListener('click', function(e) {
+            if (!e.target.closest('.data-item')) {
+                document.querySelectorAll('.data-item').forEach(item => {
+                    item.classList.remove('delete-mode');
+                });
+            }
+        });
+
+        // 记录当前视距差
+        function recordSightDiff() {
+            const sightDiffText = document.getElementById('r11').textContent;
+            
+            if (sightDiffText === '-') {
+                alert('请先进行计算！');
+                return;
+            }
+            
+            // 提取数值（去掉" 米"）
+            const sightDiffValue = parseFloat(sightDiffText.replace(' 米', ''));
+            
+            if (isNaN(sightDiffValue)) {
+                alert('无法获取有效的视距差数值！');
+                return;
+            }
+            
+            // 添加到数据数组
+            sightDiffData.push(sightDiffValue);
+            
+            // 更新显示
+            updateDataGrid();
+            updateSum();
+            updateResultSumDisplay();
+            
+            alert('视距差已记录！');
+        }
+
+        // 更新结果页的∑视距差显示
+        function updateResultSumDisplay() {
+            const sum = sightDiffData.reduce((acc, val) => acc + val, 0);
+            document.getElementById('sumSightDiffDisplay').textContent = `∑视距差=${sum.toFixed(3)}m`;
+        }
+
+        // 清除全部数据
+        function clearAllData() {
+            if (sightDiffData.length === 0) {
+                alert('暂无数据可清除！');
+                return;
+            }
+            
+            if (confirm('确定要清除所有视距差数据吗？')) {
+                sightDiffData = [];
+                updateDataGrid();
+                updateSum();
+                updateResultSumDisplay();
+            }
+        }
+
+        // 视距差输入框回车添加
+        document.getElementById('sightDiffInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addSightDiff();
+            }
+        });
+    </script>
+</body>
+</html>
